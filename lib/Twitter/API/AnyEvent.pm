@@ -2,13 +2,14 @@ package Twitter::API::AnyEvent;
 # Abstract: Twitter::API subclass with async support
 
 use Moo;
-use namespace::autoclean;
 use strictures 2;
 use Carp;
 use AnyEvent::HTTP::Request;
 use AnyEvent::HTTP::Response;
 use Scalar::Util qw/reftype weaken/;
 use Try::Tiny;
+
+use namespace::clean;
 
 extends 'Twitter::API';
 

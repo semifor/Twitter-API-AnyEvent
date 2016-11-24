@@ -3,5 +3,5 @@ requires 'AnyEvent::HTTP::Message';
 requires 'Carp';
 requires 'Moo';
 requires 'Try::Tiny';
-requires 'namespace::autoclean';
+requires 'namespace::clean';
 requires 'strictures';
