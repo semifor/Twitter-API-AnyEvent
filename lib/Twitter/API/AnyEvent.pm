@@ -36,10 +36,11 @@ sub send_request {
         },
         cb => sub {
             undef $w;
-            my $res = AnyEvent::HTTP::Response->new(@_);
+            $res = AnyEvent::HTTP::Response->new(@_);
+            $c->{http_response} = $res->to_http_message;
             my ( $e, $r );
             try {
-                $r = $self->inflate_response($c, $res->to_http_message);
+                $r = $self->inflate_response($c);
             }
             catch {
                 $e = $_;
