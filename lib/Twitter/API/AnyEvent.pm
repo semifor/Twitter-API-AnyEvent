@@ -6,7 +6,7 @@ use Moo;
 use Carp;
 use AnyEvent::HTTP::Request;
 use AnyEvent::HTTP::Response;
-use Scalar::Util qw/reftype weaken/;
+use Scalar::Util qw/reftype/;
 use Try::Tiny;
 
 use namespace::clean;
@@ -23,20 +23,22 @@ around request => sub {
         unless ref $_[-1] && reftype $_[-1] eq 'CODE';
 
     my $c = $self->$orig(@_);
+
+    # rather than returning the result, we'll return the pending request's
+    # cancellation guard
+    my $guard = $c->delete_option('pending_request');
+    return wantarray ? ( $guard, $c ) : $guard;
 };
 
 sub send_request {
     my ( $self, $c ) = @_;
-    weaken $self;
 
     my $cb = pop @{ $$c{extra_args} };
-    my $w;
-    my $ae_req = AnyEvent::HTTP::Request->new($c->http_request, {
+    my $request = AnyEvent::HTTP::Request->new($c->http_request, {
         params => {
             timeout => $self->timeout,
         },
         cb => sub {
-            undef $w;
             my $res = AnyEvent::HTTP::Response->new(@_);
             $c->set_http_response($res->to_http_message);
             my $e;
@@ -46,11 +48,12 @@ sub send_request {
             catch {
                 $e = $_;
             };
-            $cb->($e, $c->result, $c);
+            $cb->($self, $e, $c->result, $c);
         }
     });
+    $c->set_option(pending_request => $request);
 
-    $w = $ae_req->send;
+    $request->send;
 
     # return false to exit the request early
     return;

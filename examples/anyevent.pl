@@ -5,7 +5,7 @@ use warnings;
 use AnyEvent;
 use Twitter::API::AnyEvent;
 
-my $api = Twitter::API::AnyEvent->new(
+my $client = Twitter::API::AnyEvent->new(
     consumer_key        => $ENV{CONSUMER_KEY},
     consumer_secret     => $ENV{CONSUMER_SECRET},
     access_token        => $ENV{ACCESS_TOKEN},
@@ -14,8 +14,8 @@ my $api = Twitter::API::AnyEvent->new(
 
 my $cv = AE::cv;
 
-$api->get('account/verify_credentials', sub {
-    my ( $error, $r, $c ) = @_;
+my $guard = $client->get('account/verify_credentials', sub {
+    my ( $client, $error, $r, $c ) = @_;
 
     $cv->croak($error) if $error;
 
@@ -25,4 +25,17 @@ $api->get('account/verify_credentials', sub {
     $cv->send;
 });
 
+# $client already has 10 second timeout (default); this just demonstrates that
+# you can cancel a pending request by undef-ing $r.  We also have to call
+# $cv->send, because that's what I request callback would hove done.
+# Otherwise, the request continues anyway, until the callback's $cv->send is
+# called, or a request timeout results the callback's $cv->croak call.
+my $timeout; $timeout = AE::timer 2, 0, sub {
+    undef $timeout;
+    undef $guard;
+    say "aborting...";
+    $cv->send;
+};
+
+say "waiting...";
 $cv->recv;
