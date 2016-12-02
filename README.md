@@ -23,17 +23,19 @@ use AnyEvent;
 use Twitter::API::AnyEvent;
 
 my $cv = AE::cv;
-my $api = Twitter::API::AnyEvent->new(
+my $api = Twitter::API::AnyEvent->new_with_traits(
     traits => [ qw/ApiMethods/ ],
     %other_new_options,
 );
 
 $api->show_user('twitter', sub {
-    my ( $error, $r ) = @_;
+    my ( $error, $r, $c ) = @_;
 
     $cv->croak($error) if $error;
 
     say $r->{location};
+    say "remaing calls: ", $c->rate_limit_remaining;
+    say "until: ", scalar localtime $c->rate_limit_reset;
     $cv->send;
 });
 
@@ -44,6 +46,8 @@ $cv->recv;
 Output:
 ```
 San Francisco, CA
+remaining calls: 74
+until: Thu Dec  1 20:13:01 2016
 ```
 
 Authors
